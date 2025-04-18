@@ -17,6 +17,7 @@ body {
   height: 100vh;
   display: flex;
   justify-content: center;
+  overflow: hidden;
 }
 
 .task_app {
@@ -83,6 +84,7 @@ ul {
   flex-direction: column;
   gap: 12px;
   padding: 0;
+  overflow-y: auto;
 }
 
 li {

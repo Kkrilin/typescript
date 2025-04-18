@@ -1,20 +1,21 @@
 import { useState } from "react"
-import { Task } from "../../App"
 import { Status } from "../../constant"
+import { v4 as uuidv4 } from "uuid"
 
-interface Props {
-    tasks: Task[],
-    setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+export interface Task {
+    id: string,
+    name: string,
+    active: Status
 }
 
-
-const TaskTracker = ({ tasks, setTasks }: Props) => {
+const TaskTracker = () => {
+    const [tasks, setTasks] = useState<Task[]>([])
     const [active, setActive] = useState<number>(0)
     const [taskName, setTaskName] = useState<string>("")
 
-    const handleChecked = (e: React.ChangeEvent<HTMLInputElement>, i: number) => {
-        const updatedTask = tasks.map((task, index) => {
-            return i === index ? {
+    const handleChecked = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+        const updatedTask = tasks.map((task) => {
+            return id === task.id ? {
                 ...task,
                 active: task.active === Status.ACTIVE ? Status.INACTIVE : Status.ACTIVE
             } :
@@ -24,40 +25,46 @@ const TaskTracker = ({ tasks, setTasks }: Props) => {
 
     }
 
-    const handleDelete = (e: React.MouseEvent<HTMLSpanElement>, i: number) => {
-        const filterTask = tasks.filter((task, index) => i !== index)
+    const handleDelete = (e: React.MouseEvent<HTMLSpanElement>, id: string) => {
+        const filterTask = tasks.filter((task) => id !== task.id)
         setTasks(filterTask)
     }
 
-    const handleAdd = () => {
-        setTasks([...tasks, { name: taskName, active: 1 }])
+    const handleAdd = (e: React.FormEvent<HTMLFormElement>): void => {
+        e.preventDefault()
+        if (!taskName) {
+            return
+        }
+        setTasks([...tasks, { id: uuidv4(), name: taskName, active: 1 }])
         setTaskName("")
     }
 
 
-    const filteredTasks: Task[] = active ? tasks.filter(task => task.active) : tasks;
+    const filteredTasks: Task[] = active === Status.ACTIVE ? tasks.filter(task => task.active === Status.ACTIVE) : tasks;
 
-    return <div style={{ width: "30rem", marginTop: "10rem", backgroundColor: "white", color: "black", borderRadius: "10px" }}>
+    return <div style={{ width: "30rem", marginTop: "5rem", backgroundColor: "white", color: "black", borderRadius: "10px", maxHeight: "85vh" }}>
         <div className="task_app">
             <div>
                 <h1>Task Tracker</h1>
             </div>
             <div style={{ display: 'flex', alignItems: "center" }}>
-                <input onInput={(e) => setTaskName(e.target.value)} value={taskName} type="text" />
-                <button onClick={() => handleAdd()} className="add_button" >Add</button>
+                <form onSubmit={(e) => handleAdd(e)}>
+                    <input onInput={(e) => setTaskName(e.currentTarget.value)} value={taskName} type="text" />
+                    <button className="add_button" type="submit" >Add</button>
+                </form>
             </div>
             <div className="filter" >
                 <span onClick={() => setActive(0)} className={`filter_type  ${active === 0 ? "active" : ''}`} >All</span>
                 <span onClick={() => setActive(1)} className={`filter_type ${active === 1 ? "active" : ''}`}>Active</span>
             </div>
-            <div>
+            <div style={{ overflowY: "auto", maxHeight: "60vh" }}>
                 <ul>
                     {filteredTasks.map((task, i) => (
                         <li key={i + 1} >
                             <div style={{ display: "flex", alignItems: "center" }}>
-                                <input checked={!task.active} onChange={(e) => handleChecked(e, i)} type="checkbox" name="" id="" />
+                                <input checked={!task.active} onChange={(e) => handleChecked(e, task.id)} type="checkbox" name="" id="" />
                                 <h3 style={{ width: "18rem", marginLeft: "18px" }}>{task.name}</h3>
-                                <span style={{ padding: "0.4rem 0.6rem ", backgroundColor: "brown", borderRadius: "6px", color: "white" }} onClick={(e) => handleDelete(e, i)}>X</span>
+                                <span style={{ padding: "0.4rem 0.6rem ", backgroundColor: "brown", borderRadius: "6px", color: "white" }} onClick={(e) => handleDelete(e, task.id)}>X</span>
                             </div>
                         </li>
                     ))}
