@@ -1,11 +1,13 @@
-import TaskTracker from './component/TaskTracker/TaskTracker.tsx'
-// import { Status } from './constant'
-import './App.css'
+import AppRoutes from './component/Routes/AppRoutes.tsx'
 
+import { Toaster } from 'sonner'
 
 function App() {
   return (
-    <TaskTracker  />
+    <>
+      <Toaster richColors position="top-center" />
+      <AppRoutes />
+    </>
   )
 }
 
