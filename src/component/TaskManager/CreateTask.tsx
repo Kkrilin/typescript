@@ -1,18 +1,22 @@
 import React, { useState } from 'react'
 import { taskBaseUrl, header } from '../../api'
-import { TaskData, Priority, CreateTaskResponse } from '../../constant'
-import axios, { AxiosError, AxiosResponse } from 'axios'
+import { TaskData, Priority, CreateTaskResponse, Task } from '../../constant'
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { toast } from 'sonner'
+import moment from 'moment-timezone'
 
 type Props = {
-    setTaskData: React.Dispatch<React.SetStateAction<TaskData>>
-    taskData: TaskData
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+    setEditedTask: React.Dispatch<React.SetStateAction<Task | null>>
+    editedTask: Task | null
 
 }
 const initialState = {
     priority: Priority.LOW
 }
-const CreateTask = ({ setTaskData, taskData }: Props) => {
+const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
+    const [isEdit, setIsEdit] = useState<boolean>(false)
+    const [taskData, setTaskData] = useState<TaskData>(initialState)
     const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setTaskData(prvState => {
@@ -29,20 +33,63 @@ const CreateTask = ({ setTaskData, taskData }: Props) => {
             toast.error('all data required')
             return
         }
-        //  typescript generic typeing wdecide what will res body will have
-        axios.post<CreateTaskResponse>(taskBaseUrl, taskData, header)
+        let url: string = taskBaseUrl
+        if (editedTask && isEdit) {
+            url = `${taskBaseUrl}/${editedTask.id}`
+        }
+        console.log('editTask', editedTask)
+        console.log('url', url)
+        const payload: AxiosRequestConfig = {
+            url,
+            method: isEdit ? 'put' : 'post',
+            data: taskData,
+            headers: header.headers
+        }
+        axios<CreateTaskResponse>(payload)
             .then((res: AxiosResponse<CreateTaskResponse>) => {
-                toast.success('task created')
+                toast.success(`${isEdit ? 'task edited' : 'task created'}`)
+                setTasks(prvState => {
+                    if (prvState.length === 10) {
+                        prvState.pop()
+                    }
+                    return [res.data.task, ...prvState]
+                })
+                if (!isEdit && typeof localStorage.getItem('count') === 'string') {
+                    const count: number = parseInt(localStorage.getItem('count') ?? '0')
+                    localStorage.setItem('count', `${count + 1}`)
+                }
                 setTaskData(initialState)
+                setIsEdit(false)
             }).catch((error: AxiosError) => {
-                toast.error(`failed to create task ${error.message}`)
+                toast.error(`failed to ${isEdit ? "update" : "create"} task ${error.message}`)
             }).finally(() => {
 
             })
     }
 
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsEdit(true)
+        const editTask = JSON.parse(e.dataTransfer.getData("task"))
+        setEditedTask(editTask)
+        setTasks(prvState => prvState.filter(t => editTask && t.id !== editTask.id))
+        setTaskData(prvState => {
+            if (editTask) {
+                console.log(moment(editTask.dueDate).format("DD/MM/YYYY"))
+                return {
+                    ...prvState,
+                    description: editTask.description,
+                    dueDate: moment(editTask.dueDate).format("YYYY-MM-DD"),
+                    title: editTask.title,
+                    priority: editTask.priority
+                }
+            }
+        })
+        console.log('somthing drop', editTask)
+    }
+    console.log('taskData.dueDate', taskData.dueDate)
     return (
-        <div style={{ backgroundColor: "#fff", width: "40vw", borderRadius: "10px", padding: "1rem 2rem", marginTop: "2rem" }}>
+        <div onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e)} style={{ backgroundColor: "#fff", width: "40vw", borderRadius: "10px", padding: "1rem 2rem", marginTop: "2rem" }}>
             <div>
                 <form onSubmit={(e) => handleSubmit(e)} action="">
                     <div className='task_field'>
@@ -66,7 +113,7 @@ const CreateTask = ({ setTaskData, taskData }: Props) => {
                         <input onChange={(e) => handleInput(e)} value={`${taskData.dueDate}`} name='dueDate' id='title' type="date" min={new Date().toISOString().split('T')[0]} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "end" }}>
-                        <button className='task_save_button'>Save</button>
+                        <button className='task_save_button'>{isEdit ? "Edit" : "Save"}</button>
                     </div>
                 </form>
             </div>

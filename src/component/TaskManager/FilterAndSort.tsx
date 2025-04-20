@@ -78,16 +78,16 @@ const FilterAndSort = ({ setParams }: Props) => {
                             <option value="completed">completed</option>
                         </select>
                     </div>
-                    <div style={{ marginTop: "2rem" }}>
+                    {/* <div style={{ marginTop: "2rem" }}>
                         <h3>Sort BY :</h3>
                         <div>
-                            {/* <label htmlFor="priority">Priority</label> */}
+                            <label htmlFor="priority">Priority</label>
                             <select id="priority" defaultValue="priority">
                                 <option value="priority">priority</option>
                                 <option value="duedate">duedate</option>
                             </select>
                         </div>
-                    </div>
+                    </div> */}
                     {/* <div>
                         <label htmlFor="f_duedate">Due Date</label>
                         <input type="date" name="" id="f_duedate" />

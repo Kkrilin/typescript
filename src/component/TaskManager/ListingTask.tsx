@@ -1,6 +1,6 @@
 // import React from "react";
 import moment from "moment-timezone";
-import { initialState, Order, Task, TaskData } from "../../constant";
+import { initialState, Order, Task, TaskData, Params, Status } from "../../constant";
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
@@ -10,21 +10,22 @@ import axios, { AxiosError } from "axios";
 import { header, taskBaseUrl } from "../../api";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Params } from "react-router-dom";
 
 type Props = {
   tasks: Task[]
-  setTaskData: React.Dispatch<React.SetStateAction<TaskData>>
+  setDeletedTask: React.Dispatch<React.SetStateAction<Task | null>>
   setParams: React.Dispatch<React.SetStateAction<Params>>
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>
 };
 
 type TaskCardProp = {
   task: Task,
   number: number
-  setTaskData: React.Dispatch<React.SetStateAction<TaskData>>
+  setDeletedTask: React.Dispatch<React.SetStateAction<Task | null>>
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>
 }
 
-const ListingTask = ({ tasks, setTaskData, setParams }: Props) => {
+const ListingTask = ({ tasks, setDeletedTask, setParams, setTasks }: Props) => {
   const [prioritySort, setPrioritySort] = useState<Order>(Order.ASC)
   const [dueDateSort, setDueDateSort] = useState<Order>(Order.ASC)
 
@@ -55,7 +56,7 @@ const ListingTask = ({ tasks, setTaskData, setParams }: Props) => {
           <th>Title</th>
           <th>Description</th>
           <th onClick={handlePrioritySort}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2rem', cursor:"pointer" }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2rem', cursor: "pointer" }}>
               Priority&nbsp;
               {prioritySort === Order.ASC
                 ? ''
@@ -65,7 +66,7 @@ const ListingTask = ({ tasks, setTaskData, setParams }: Props) => {
             </div>
           </th>
           <th onClick={handleDueDateSort}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2rem', cursor:"pointer" }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '2rem', cursor: "pointer" }}>
               Due Date&nbsp;
               {dueDateSort === Order.ASC
                 ? ''
@@ -80,14 +81,14 @@ const ListingTask = ({ tasks, setTaskData, setParams }: Props) => {
         </tr>
       </thead>
       <tbody>{
-        tasks.map(((task, i) => <TaskCard setTaskData={setTaskData} key={i + 1} task={task} number={i + 1} />))
+        tasks.map(((task, i) => <TaskCard setTasks={setTasks} setDeletedTask={setDeletedTask} key={task.id} task={task} number={i + 1} />))
       }</tbody>
     </table>
   );
 };
 
 
-const TaskCard = ({ task, number, setTaskData }: TaskCardProp) => {
+const TaskCard = ({ task, number, setDeletedTask, setTasks }: TaskCardProp) => {
   const [doubleClick, setDoubleClick] = useState<boolean>(false)
   const token = localStorage.getItem('token')
   header.headers = {
@@ -98,32 +99,48 @@ const TaskCard = ({ task, number, setTaskData }: TaskCardProp) => {
   const handleTaskDelete = () => {
     axios.delete(`${taskBaseUrl}/${task.id}`, header)
       .then(() => {
-        toast.success('task deleted')
-        setTaskData(() => ({ ...initialState }))
+        toast.success('Task Deleted');
+        setDeletedTask(task)
       }).catch((error) => toast.error(error.message))
   }
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setDoubleClick(false)
     axios.put(`${taskBaseUrl}/${task.id}`, { status: e.target.value }, header)
       .then(() => {
-        setTaskData(() => ({ ...initialState }))
+        setTasks(prvState => {
+          const updateTask = prvState.map(p => {
+            if (p.id === task.id) {
+              return {
+                ...task,
+                status: e.target.value
+              }
+            }
+            return p
+          })
+          return updateTask
+        })
       })
       .catch((error: AxiosError) => toast.error(`something went wrong ${error.message}`))
     console.log(e.target.value)
   }
 
+  const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, task: Task) => {
+    console.log("drag start")
+    e.dataTransfer.setData('task', JSON.stringify(task))
+  }
+
   return (
-    <tr >
+    <tr draggable onDragStart={(e) => handleDragStart(e, task)} >
       <td >{number}</td>
       <td >{task.title}</td>
       <td >{task.description}</td>
       <td >{task.priority}</td>
       <td >{moment(task.dueDate).format("YYYY/MM/DD")}</td>
       {!doubleClick && <td onDoubleClick={() => setDoubleClick(true)}>{task.status}</td>}
-      {doubleClick && <select onChange={(e) => handleSelectChange(e)} style={{ marginTop: "0.98rem", height: "2rem" }} id="priority" value={task.status}>
+      {doubleClick && <td><select onChange={(e) => handleSelectChange(e)} id="priority" value={task.status}>
         <option value="pending">pending</option>
         <option value="completed">completed</option>
-      </select>}
+      </select><span style={{ marginLeft: "2px" }} onClick={() => setDoubleClick(false)}>X</span></td>}
       <td >
         <button onClick={handleTaskDelete} >
           <DeleteIcon />

@@ -64,6 +64,6 @@ export  interface Params {
     status?: Status,
     startDate?: string,
     endDate?: string,
-    dueDate?: Sort
-    prioritySort?: Sort 
+    dueDate?: Order
+    prioritySort?: Order 
 }

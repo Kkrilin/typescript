@@ -1,6 +1,6 @@
 
 import Header from '../TaskManager/Header'
-import { initialState, ListTaskResponse, Params, Priority, TaskData, User } from '../../constant'
+import { ListTaskResponse, Params, User } from '../../constant'
 import CreateTask from '../TaskManager/CreateTask'
 import FilterAndSort from '../TaskManager/FilterAndSort'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -18,18 +18,22 @@ type Props = {
     user: User
 }
 
-
-
 const TaskManager = ({ user }: Props) => {
     const navigate = useNavigate()
     const [tasks, setTasks] = useState<Task[]>([])
     const [page, setPage] = useState<number>(1)
     const [params, setParams] = useState<Params>({})
-    const [taskData, setTaskData] = useState<TaskData>(initialState)
-    header.params = {
-        page,
-        ...params
+    // const [createdTask, setCreatedTask] = useState<TaskData>(initialState)
+    const [deletedTask, setDeletedTask] = useState<Task | null>(null)
+    const [editedTask, setEditedTask] = useState<Task | null>(null)
+    const listHeader = {
+        ...header,
+        params: {
+            page,
+            ...params
+        }
     }
+
     const token = localStorage.getItem('token')
     header.headers = {
         ...header.headers,
@@ -41,26 +45,29 @@ const TaskManager = ({ user }: Props) => {
             toast.error('please login again')
             setTimeout(() => navigate('/'), 200)
         } else {
-            axios.get<ListTaskResponse>(taskBaseUrl, header)
+            axios.get<ListTaskResponse>(taskBaseUrl, listHeader)
                 .then((res: AxiosResponse<ListTaskResponse>) => {
-                    setTasks(res.data.tasks)
+                    setTasks(() => res.data.tasks.filter(t => editedTask ? editedTask.id !== t.id : t))
                     localStorage.setItem("count", JSON.stringify(res.data.count))
                 }).catch((error: AxiosError) => {
                     toast.error(`something went wrong ${error.message}`)
                 })
         }
-    }, [page, taskData, params])
+    }, [page, deletedTask, params, editedTask])
+
+    console.log('deletedTask', deletedTask)
+    console.log('editedTask', editedTask)
 
     console.log(tasks);
     const count: number = Number(localStorage.getItem("count"))
-    const startPage: number = count > 0 ? 1 + (page - 1) * 10 : 0;
-    const endPage: number = 10 + (page - 1) * 10 < count ? 10 + (page - 1) * 10 : count
+    const startPage: number = count > 0 ? 1 + (page - 1) * tasks.length : 0;
+    const endPage: number = tasks.length + (page - 1) * tasks.length < count ? tasks.length + (page - 1) * tasks.length : count
     return (
         <div>
             <Header user={user} />
             <div style={{ display: "flex", gap: "4rem", width: "90%", marginTop: "1rem", padding: "1rem 0rem", margin: "0 auto" }}>
                 <div style={{ height: "850px", width: "50%", backgroundColor: "#fff", borderRadius: "10px", padding: "1rem 2rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <ListingTask setParams={setParams} tasks={tasks} setTaskData={setTaskData} />
+                    <ListingTask setParams={setParams} tasks={tasks} setTasks={setTasks} setDeletedTask={setDeletedTask} />
                     <div style={{ display: 'flex', justifyContent: "end" }}>
                         <div style={{ display: 'flex', gap: "10px", alignItems: "center" }}>
                             <span>{startPage}</span>
@@ -79,7 +86,7 @@ const TaskManager = ({ user }: Props) => {
                 </div>
                 <div>
                     <FilterAndSort setParams={setParams} />
-                    <CreateTask taskData={taskData} setTaskData={setTaskData} />
+                    <CreateTask editedTask={editedTask} setEditedTask={setEditedTask} setTasks={setTasks} />
                 </div>
             </div>
         </div>
