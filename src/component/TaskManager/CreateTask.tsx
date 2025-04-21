@@ -85,6 +85,7 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
                     priority: editTask.priority
                 }
             }
+            return prvState
         })
         console.log('somthing drop', editTask)
     }

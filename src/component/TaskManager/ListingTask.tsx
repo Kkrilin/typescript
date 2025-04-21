@@ -1,6 +1,6 @@
 // import React from "react";
 import moment from "moment-timezone";
-import { Order, Task, Params } from "../../constant";
+import { Order, Task, Params, Status } from "../../constant";
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -119,7 +119,7 @@ const TaskCard = ({ task, number, setDeletedTask, setTasks, loading }: TaskCardP
             if (p.id === task.id) {
               return {
                 ...task,
-                status: e.target.value
+                status: e.target.value === Status.COMPLETED ? Status.COMPLETED : Status.PENDING
               }
             }
             return p
