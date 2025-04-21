@@ -26,6 +26,8 @@ const TaskManager = ({ user }: Props) => {
     // const [createdTask, setCreatedTask] = useState<TaskData>(initialState)
     const [deletedTask, setDeletedTask] = useState<Task | null>(null)
     const [editedTask, setEditedTask] = useState<Task | null>(null)
+    const [loading, setLoading] = useState<boolean>(true)
+
     const listHeader = {
         ...header,
         params: {
@@ -35,7 +37,7 @@ const TaskManager = ({ user }: Props) => {
     }
 
     const token = localStorage.getItem('token')
-    header.headers = {
+    listHeader.headers = {
         ...header.headers,
         Authorization: `Bearer ${token}`
     }
@@ -45,20 +47,17 @@ const TaskManager = ({ user }: Props) => {
             toast.error('please login again')
             setTimeout(() => navigate('/'), 200)
         } else {
+            setLoading(true)
             axios.get<ListTaskResponse>(taskBaseUrl, listHeader)
                 .then((res: AxiosResponse<ListTaskResponse>) => {
                     setTasks(() => res.data.tasks.filter(t => editedTask ? editedTask.id !== t.id : t))
                     localStorage.setItem("count", JSON.stringify(res.data.count))
                 }).catch((error: AxiosError) => {
                     toast.error(`something went wrong ${error.message}`)
-                })
+                }).finally(() => setLoading(false))
         }
     }, [page, deletedTask, params, editedTask])
 
-    console.log('deletedTask', deletedTask)
-    console.log('editedTask', editedTask)
-
-    console.log(tasks);
     const count: number = Number(localStorage.getItem("count"))
     const startPage: number = count > 0 ? 1 + (page - 1) * tasks.length : 0;
     const endPage: number = tasks.length + (page - 1) * tasks.length < count ? tasks.length + (page - 1) * tasks.length : count
@@ -67,7 +66,7 @@ const TaskManager = ({ user }: Props) => {
             <Header user={user} />
             <div style={{ display: "flex", gap: "4rem", width: "90%", marginTop: "1rem", padding: "1rem 0rem", margin: "0 auto" }}>
                 <div style={{ height: "850px", width: "50%", backgroundColor: "#fff", borderRadius: "10px", padding: "1rem 2rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <ListingTask setParams={setParams} tasks={tasks} setTasks={setTasks} setDeletedTask={setDeletedTask} />
+                    <ListingTask loading={loading} setParams={setParams} tasks={tasks} setTasks={setTasks} setDeletedTask={setDeletedTask} />
                     <div style={{ display: 'flex', justifyContent: "end" }}>
                         <div style={{ display: 'flex', gap: "10px", alignItems: "center" }}>
                             <span>{startPage}</span>

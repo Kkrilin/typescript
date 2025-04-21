@@ -4,6 +4,7 @@ import { TaskData, Priority, CreateTaskResponse, Task } from '../../constant'
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { toast } from 'sonner'
 import moment from 'moment-timezone'
+import { CircularProgress } from '@mui/material'
 
 type Props = {
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>
@@ -17,6 +18,7 @@ const initialState = {
 const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
     const [isEdit, setIsEdit] = useState<boolean>(false)
     const [taskData, setTaskData] = useState<TaskData>(initialState)
+    const [loading, setLoading] = useState<boolean>(false)
     const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setTaskData(prvState => {
@@ -37,14 +39,13 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
         if (editedTask && isEdit) {
             url = `${taskBaseUrl}/${editedTask.id}`
         }
-        console.log('editTask', editedTask)
-        console.log('url', url)
         const payload: AxiosRequestConfig = {
             url,
             method: isEdit ? 'put' : 'post',
             data: taskData,
             headers: header.headers
         }
+        setLoading(true)
         axios<CreateTaskResponse>(payload)
             .then((res: AxiosResponse<CreateTaskResponse>) => {
                 toast.success(`${isEdit ? 'task edited' : 'task created'}`)
@@ -63,7 +64,7 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
             }).catch((error: AxiosError) => {
                 toast.error(`failed to ${isEdit ? "update" : "create"} task ${error.message}`)
             }).finally(() => {
-
+                setLoading(false)
             })
     }
 
@@ -113,7 +114,7 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
                         <input onChange={(e) => handleInput(e)} value={`${taskData.dueDate}`} name='dueDate' id='title' type="date" min={new Date().toISOString().split('T')[0]} />
                     </div>
                     <div style={{ display: "flex", justifyContent: "end" }}>
-                        <button className='task_save_button'>{isEdit ? "Edit" : "Save"}</button>
+                        <button style={{ position: "relative" }} className='task_save_button'>{isEdit ? "Edit" : "Save"} {loading ? <CircularProgress style={{ position: "absolute", color: "white", left: "56%" }} size="15px" color="inherit" /> : ''}</button>
                     </div>
                 </form>
             </div>

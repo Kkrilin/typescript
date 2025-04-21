@@ -1,21 +1,21 @@
 // import React from "react";
 import moment from "moment-timezone";
-import { initialState, Order, Task, TaskData, Params, Status } from "../../constant";
+import { Order, Task, Params } from "../../constant";
 import DeleteIcon from '@mui/icons-material/Delete';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import axios, { AxiosError } from "axios";
 import { header, taskBaseUrl } from "../../api";
 import { toast } from "sonner";
 import { useState } from "react";
+import { CircularProgress } from "@mui/material";
 
 type Props = {
   tasks: Task[]
   setDeletedTask: React.Dispatch<React.SetStateAction<Task | null>>
   setParams: React.Dispatch<React.SetStateAction<Params>>
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+  loading: boolean
 };
 
 type TaskCardProp = {
@@ -23,12 +23,13 @@ type TaskCardProp = {
   number: number
   setDeletedTask: React.Dispatch<React.SetStateAction<Task | null>>
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+  loading: boolean
+
 }
 
-const ListingTask = ({ tasks, setDeletedTask, setParams, setTasks }: Props) => {
+const ListingTask = ({ tasks, setDeletedTask, setParams, setTasks, loading }: Props) => {
   const [prioritySort, setPrioritySort] = useState<Order>(Order.ASC)
   const [dueDateSort, setDueDateSort] = useState<Order>(Order.ASC)
-
   const handlePrioritySort = () => {
     setPrioritySort(state => state === Order.NONE ? Order.ASC : state === Order.ASC ? Order.DESC : Order.NONE)
     setParams((prvState => {
@@ -48,6 +49,8 @@ const ListingTask = ({ tasks, setDeletedTask, setParams, setTasks }: Props) => {
       }
     }))
   }
+
+
   return (
     <table >
       <thead>
@@ -81,26 +84,30 @@ const ListingTask = ({ tasks, setDeletedTask, setParams, setTasks }: Props) => {
         </tr>
       </thead>
       <tbody>{
-        tasks.map(((task, i) => <TaskCard setTasks={setTasks} setDeletedTask={setDeletedTask} key={task.id} task={task} number={i + 1} />))
+        tasks.map(((task, i) => <TaskCard loading={loading} setTasks={setTasks} setDeletedTask={setDeletedTask} key={task.id} task={task} number={i + 1} />))
       }</tbody>
     </table>
   );
 };
 
 
-const TaskCard = ({ task, number, setDeletedTask, setTasks }: TaskCardProp) => {
+const TaskCard = ({ task, number, setDeletedTask, setTasks, loading }: TaskCardProp) => {
   const [doubleClick, setDoubleClick] = useState<boolean>(false)
   const token = localStorage.getItem('token')
   header.headers = {
     ...header.headers,
     Authorization: `Bearer ${token}`
   }
-
+  const count: number = parseInt(localStorage.getItem("count") || '0')
   const handleTaskDelete = () => {
     axios.delete(`${taskBaseUrl}/${task.id}`, header)
       .then(() => {
         toast.success('Task Deleted');
-        setDeletedTask(task)
+        if (count > 10) {
+          setDeletedTask(task)
+        } else {
+          setTasks(prvTask => prvTask.filter(t => t.id !== task.id))
+        }
       }).catch((error) => toast.error(error.message))
   }
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -127,6 +134,17 @@ const TaskCard = ({ task, number, setDeletedTask, setTasks }: TaskCardProp) => {
   const handleDragStart = (e: React.DragEvent<HTMLTableRowElement>, task: Task) => {
     console.log("drag start")
     e.dataTransfer.setData('task', JSON.stringify(task))
+  }
+
+  if (loading) {
+    return (
+      <div style={{ transform: "translate(20rem, 5rem)" }}>
+        <CircularProgress
+          size="30px"
+          color="secondary"
+        />
+      </div>
+    )
   }
 
   return (
