@@ -23,7 +23,6 @@ type TaskCardProp = {
   number: number
   setDeletedTask: React.Dispatch<React.SetStateAction<Task | null>>
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
-  loading: boolean
 
 }
 
@@ -84,14 +83,20 @@ const ListingTask = ({ tasks, setDeletedTask, setParams, setTasks, loading }: Pr
         </tr>
       </thead>
       <tbody>{
-        tasks.map(((task, i) => <TaskCard loading={loading} setTasks={setTasks} setDeletedTask={setDeletedTask} key={task.id} task={task} number={i + 1} />))
+        loading ? <div style={{ transform: "translate(20rem, 5rem)" }}>
+          <CircularProgress
+            size="30px"
+            color="secondary"
+          />
+        </div> :
+          tasks.map(((task, i) => <TaskCard setTasks={setTasks} setDeletedTask={setDeletedTask} key={task.id} task={task} number={i + 1} />))
       }</tbody>
     </table>
   );
 };
 
 
-const TaskCard = ({ task, number, setDeletedTask, setTasks, loading }: TaskCardProp) => {
+const TaskCard = ({ task, number, setDeletedTask, setTasks }: TaskCardProp) => {
   const [doubleClick, setDoubleClick] = useState<boolean>(false)
   const token = localStorage.getItem('token')
   header.headers = {
@@ -136,16 +141,6 @@ const TaskCard = ({ task, number, setDeletedTask, setTasks, loading }: TaskCardP
     e.dataTransfer.setData('task', JSON.stringify(task))
   }
 
-  if (loading) {
-    return (
-      <div style={{ transform: "translate(20rem, 5rem)" }}>
-        <CircularProgress
-          size="30px"
-          color="secondary"
-        />
-      </div>
-    )
-  }
 
   return (
     <tr draggable onDragStart={(e) => handleDragStart(e, task)} >
