@@ -50,23 +50,26 @@ const TaskManager = ({ user }: Props) => {
             setLoading(true)
             axios.get<ListTaskResponse>(taskBaseUrl, listHeader)
                 .then((res: AxiosResponse<ListTaskResponse>) => {
-                    setTasks(() => res.data.tasks.filter(t => editedTask ? editedTask.id !== t.id : t))
+                    setTasks(res.data.tasks)
+                    setEditedTask(null)
                     localStorage.setItem("count", JSON.stringify(res.data.count))
                 }).catch((error: AxiosError) => {
                     toast.error(`something went wrong ${error.message}`)
                 }).finally(() => setLoading(false))
         }
-    }, [page, deletedTask, params, editedTask])
+    }, [page, deletedTask, params])
+
+    const filteredTasks: Task[] = editedTask ? tasks.filter(t => t.id !== editedTask?.id) : tasks;
 
     const count: number = Number(localStorage.getItem("count"))
-    const startPage: number = count > 0 ? 1 + (page - 1) * tasks.length : 0;
-    const endPage: number = tasks.length + (page - 1) * tasks.length < count ? tasks.length + (page - 1) * tasks.length : count
+    const startPage: number = count > 0 ? 1 + (page - 1) * filteredTasks.length : 0;
+    const endPage: number = filteredTasks.length + (page - 1) * filteredTasks.length < count ? filteredTasks.length + (page - 1) * filteredTasks.length : count
     return (
         <div>
             <Header user={user} />
             <div style={{ display: "flex", gap: "4rem", width: "90%", marginTop: "1rem", padding: "1rem 0rem", margin: "0 auto" }}>
                 <div style={{ height: "850px", width: "50%", backgroundColor: "#fff", borderRadius: "10px", padding: "1rem 2rem", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                    <ListingTask loading={loading} setParams={setParams} tasks={tasks} setTasks={setTasks} setDeletedTask={setDeletedTask} />
+                    <ListingTask loading={loading} setParams={setParams} tasks={filteredTasks} setTasks={setTasks} setDeletedTask={setDeletedTask} />
                     <div style={{ display: 'flex', justifyContent: "end" }}>
                         <div style={{ display: 'flex', gap: "10px", alignItems: "center" }}>
                             <span>{startPage}</span>
@@ -77,7 +80,7 @@ const TaskManager = ({ user }: Props) => {
                             <span className='pagination_arrow' onClick={() => setPage(prvState => prvState > 1 ? prvState - 1 : prvState)}>
                                 <ArrowBackIcon />
                             </span>
-                            <span className='pagination_arrow' onClick={() => setPage(prvState => endPage < count ? prvState + 1 : prvState)}>
+                            <span className='pagination_arrow' onClick={() => setPage(prvState => endPage < count && count > 10 ? prvState + 1 : prvState)}>
                                 <ArrowForwardIcon />
                             </span>
                         </div>
@@ -85,7 +88,7 @@ const TaskManager = ({ user }: Props) => {
                 </div>
                 <div>
                     <FilterAndSort setParams={setParams} />
-                    <CreateTask editedTask={editedTask} setEditedTask={setEditedTask} setTasks={setTasks} />
+                    <CreateTask params={params} editedTask={editedTask} setEditedTask={setEditedTask} setTasks={setTasks} />
                 </div>
             </div>
         </div>

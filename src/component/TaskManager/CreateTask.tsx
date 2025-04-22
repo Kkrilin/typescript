@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { taskBaseUrl, header } from '../../api'
-import { TaskData, Priority, CreateTaskResponse, Task } from '../../constant'
+import { TaskData, Priority, CreateTaskResponse, Task, Params } from '../../constant'
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { toast } from 'sonner'
 import moment from 'moment-timezone'
@@ -10,12 +10,13 @@ type Props = {
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>
     setEditedTask: React.Dispatch<React.SetStateAction<Task | null>>
     editedTask: Task | null
+    params: Params
 
 }
 const initialState = {
     priority: Priority.LOW
 }
-const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
+const CreateTask = ({ setTasks, setEditedTask, editedTask, params }: Props) => {
     const [isEdit, setIsEdit] = useState<boolean>(false)
     const [taskData, setTaskData] = useState<TaskData>(initialState)
     const [loading, setLoading] = useState<boolean>(false)
@@ -28,6 +29,12 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
             }
         })
     }
+
+    useEffect(() => {
+        if (editedTask && isEdit) {
+            setTaskData(initialState)
+        }
+    }, [params])
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -53,6 +60,9 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
                     if (prvState.length === 10) {
                         prvState.pop()
                     }
+                    if (isEdit) {
+                        return prvState.map(t => t.id === res.data.task.id ? res.data.task : t)
+                    }
                     return [res.data.task, ...prvState]
                 })
                 if (!isEdit && typeof localStorage.getItem('count') === 'string') {
@@ -60,6 +70,7 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
                     localStorage.setItem('count', `${count + 1}`)
                 }
                 setTaskData(initialState)
+                setEditedTask(null)
                 setIsEdit(false)
             }).catch((error: AxiosError) => {
                 toast.error(`failed to ${isEdit ? "update" : "create"} task ${error.message}`)
@@ -73,7 +84,6 @@ const CreateTask = ({ setTasks, setEditedTask, editedTask }: Props) => {
         setIsEdit(true)
         const editTask = JSON.parse(e.dataTransfer.getData("task"))
         setEditedTask(editTask)
-        setTasks(prvState => prvState.filter(t => editTask && t.id !== editTask.id))
         setTaskData(prvState => {
             if (editTask) {
                 console.log(moment(editTask.dueDate).format("DD/MM/YYYY"))
